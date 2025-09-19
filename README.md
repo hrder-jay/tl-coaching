@@ -8,12 +8,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
         }
         .prose > :first-child { margin-top: 0; }
         .prose > :last-child { margin-bottom: 0; }
+        .prose h3 { margin-top: 1.5em; margin-bottom: 0.8em; }
         .chat-bubble-user {
             background-color: #DBEAFE; /* blue-100 */
             align-self: flex-end;
@@ -22,13 +24,35 @@
             background-color: #F3F4F6; /* gray-100 */
             align-self: flex-start;
         }
+        #mic-button.recording {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 sm:p-6">
-    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 transition-all duration-500">
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg transition-all duration-500 overflow-hidden">
         
+        <!-- 입장 페이지 섹션 -->
+        <div id="entry-section" class="relative text-white text-center flex flex-col items-center justify-center h-[600px] sm:h-[700px]" style="background-image: url('https://i.imgur.com/v4bcnr0.png'); background-size: cover; background-position: center;">
+            <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="relative z-10 p-4">
+                <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">리더십 잠재력을 깨우는 시간</h1>
+                <p class="mt-4 max-w-xl mx-auto text-lg text-gray-200">
+                    변혁적 리더십 진단과 AI 코칭 시뮬레이션으로<br>당신의 리더십을 한 단계 발전시키세요.
+                </p>
+                <button id="start-assessment-button" class="mt-8 bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-transform transform hover:scale-105">
+                    진단 시작하기
+                </button>
+            </div>
+        </div>
+
         <!-- 진단지 섹션 -->
-        <div id="assessment-section">
+        <div id="assessment-section" class="hidden p-6 sm:p-8 md:p-10">
             <header class="text-center mb-8">
                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">변혁적 리더십 자가 진단</h1>
                 <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
@@ -50,7 +74,7 @@
         </div>
 
         <!-- 결과 섹션 -->
-        <div id="results-section" class="hidden">
+        <div id="results-section" class="hidden p-6 sm:p-8 md:p-10">
             <header class="text-center mb-8">
                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">진단 결과</h1>
                 <p class="mt-3 text-gray-600">당신의 변혁적 리더십 스타일 분석입니다.</p>
@@ -76,18 +100,18 @@
                  <h3 class="text-xl font-bold text-gray-800 mb-4">세부 진단 및 피드백</h3>
                  <div id="detailed-feedback" class="space-y-6"></div>
             </div>
-            <div class="mt-10 text-center space-x-4">
-                <button id="retake-button" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 transition-transform transform hover:scale-105">
+            <div class="mt-10 text-center flex flex-wrap justify-center gap-4">
+                <button id="retake-button" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition">
                     다시 진단하기
                 </button>
-                <button id="start-coaching-button" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105">
+                <button id="start-coaching-button" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition">
                     AI 코칭 실습하기
                 </button>
             </div>
         </div>
         
         <!-- AI 코칭 섹션 -->
-        <div id="coaching-section" class="hidden">
+        <div id="coaching-section" class="hidden p-6 sm:p-8 md:p-10">
             <!-- 1. 페르소나 선택 화면 -->
             <div id="persona-selection">
                 <header class="text-center mb-8">
@@ -96,8 +120,9 @@
                         코칭할 팀원을 선택하세요. 각 팀원은 독특한 성격과 상황을 가지고 있습니다.
                     </p>
                 </header>
-                <div id="persona-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- 페르소나 카드가 여기에 동적으로 생성됩니다. -->
+                <div id="persona-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+                 <div class="mt-8 text-center">
+                    <button id="back-to-results-from-persona" class="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition">결과 화면으로 돌아가기</button>
                 </div>
             </div>
 
@@ -105,10 +130,12 @@
             <div id="chat-interface" class="hidden">
                 <div id="persona-profile" class="p-4 bg-gray-50 rounded-lg mb-4 flex items-center gap-4"></div>
                 <div id="chat-messages" class="h-96 overflow-y-auto p-4 border rounded-lg mb-4 flex flex-col gap-4"></div>
-                <form id="chat-form" class="flex gap-2">
-                    <input type="text" id="chat-input" class="flex-grow p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="코칭 메시지를 입력하세요..." autocomplete="off">
-                    <button type="submit" id="send-button" class="bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg hover:bg-indigo-700 transition">전송</button>
-                </form>
+                <div class="mt-4 text-center">
+                    <button id="mic-button" class="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl mx-auto transition-colors duration-300 hover:bg-blue-700 focus:outline-none">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <p id="mic-status" class="mt-2 text-sm text-gray-500">탭하여 말하기</p>
+                </div>
                 <div class="text-center mt-6">
                      <button id="end-coaching-button" class="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition">코칭 종료 및 분석</button>
                 </div>
@@ -120,16 +147,17 @@
                     <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">코칭 분석 리포트</h1>
                     <p class="mt-3 text-gray-600">AI가 당신의 코칭 대화를 분석한 결과입니다.</p>
                 </header>
-                <div id="report-content" class="prose max-w-none p-6 border rounded-lg bg-gray-50">
-                    <!-- 분석 결과가 여기에 표시됩니다. -->
+                <div class="mb-8 p-6 bg-gray-50 rounded-xl flex flex-col justify-center items-center">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">코칭 5대 역량 분포</h3>
+                    <canvas id="coachingRadarChart"></canvas>
                 </div>
+                <div id="report-content" class="prose max-w-none p-6 border rounded-lg bg-gray-50"></div>
                 <div class="mt-10 text-center space-x-4">
                     <button id="back-to-personas-button" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600">다른 팀원 코칭하기</button>
                     <button id="download-report-button" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700">리포트 다운로드</button>
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -171,28 +199,32 @@
         const personas = {
             'demotivated-ace': {
                 name: '이민준 주임', emoji: '😑', title: '의욕을 잃은 에이스',
+                voice: 'Kore', // Male
                 description: '입사 초반부터 뛰어난 성과를 보였지만, 최근 3개월간 업무 의욕이 급격히 저하되었습니다. 잦은 지각과 마감일 미준수, 회의 중 무관심한 태도를 보입니다.',
                 details: '당신은 이민준 주임입니다. 과거에는 일에 대한 열정이 넘쳤지만, 반복되는 프로젝트와 성과에 대한 정당한 보상이 없다고 느껴져 번아웃 상태입니다. 리더의 코칭에 대해 냉소적이고 방어적인 태도로 대답하세요. "어차피 달라질 건 없잖아요.", "그냥 하던 대로 하면 안 되나요?" 같은 말을 자주 사용합니다.'
             },
             'ambitious-newcomer': {
                 name: '박서아 사원', emoji: '🚀', title: '과욕이 앞서는 신입',
+                voice: 'Puck', // Female
                 description: '열정과 의욕이 넘치는 신입사원입니다. 하지만 여러 업무에 동시에 손을 대고, 자신의 역량을 넘어선 일을 맡으려다 실수를 반복하여 주변 팀원들을 힘들게 합니다.',
                 details: '당신은 박서아 사원입니다. 빨리 인정받고 싶은 마음에 의욕이 넘칩니다. 리더의 조언을 긍정적으로 수용하는 척하지만, 결국 자신의 방식을 고집하려는 경향이 있습니다. "네, 알겠습니다! 그런데 이 방법은 어떨까요?", "제가 더 잘할 수 있습니다!" 와 같이 자신감 넘치는 말투를 사용하세요.'
             },
             'resistant-veteran': {
                 name: '김철수 부장', emoji: '🧐', title: '변화에 저항하는 베테랑',
+                voice: 'Gacrux', // Male
                 description: '팀의 최고참으로 풍부한 경험을 가지고 있습니다. 하지만 새로운 방식이나 기술 도입에 강한 거부감을 보이며, "예전에는 말이야..."라며 과거의 성공 경험만을 내세웁니다.',
                 details: "당신은 김철수 부장입니다. 수십 년간의 경험이 현재의 변화보다 더 중요하다고 굳게 믿고 있습니다. 리더의 코칭을 '요즘 애들'의 치기 어린 생각으로 여기며, 비판적이고 회의적인 태도를 유지하세요. \"그 방법은 우리 현실과 맞지 않아.\", \"다 해봤는데 예전 방식이 최고야.\" 같은 말을 주로 사용합니다."
             },
             'anxious-perfectionist': {
                 name: '최지우 대리', emoji: '😥', title: '불안한 완벽주의자',
+                voice: 'Vindemiatrix', // Female
                 description: '꼼꼼하고 책임감이 강하지만, 실수에 대한 두려움이 너무 커서 업무 속도가 매우 느립니다. 사소한 결정도 쉽게 내리지 못하고, 계속해서 확인을 요청하여 리더를 지치게 합니다.',
                 details: '당신은 최지우 대리입니다. 작은 실수 하나가 모든 것을 망칠 것이라는 불안감에 시달립니다. 리더의 지시나 격려에도 확신을 갖지 못하고 계속해서 질문합니다. "이게 정말 최선일까요?", "다시 한번만 확인해주실 수 있나요?" 와 같이 소극적이고 불안한 말투를 사용하세요.'
             }
         };
         
         // --- 2. 전역 변수 및 상태 관리 ---
-        // DOM 요소
+        const entrySection = document.getElementById('entry-section');
         const assessmentSection = document.getElementById('assessment-section');
         const resultsSection = document.getElementById('results-section');
         const coachingSection = document.getElementById('coaching-section');
@@ -207,45 +239,52 @@
         const overallAnalysisContainer = document.getElementById('overall-analysis');
         const detailedFeedbackContainer = document.getElementById('detailed-feedback');
         const radarChartCtx = document.getElementById('radarChart').getContext('2d');
+        const coachingRadarChartCtx = document.getElementById('coachingRadarChart').getContext('2d');
         const personaCardsContainer = document.getElementById('persona-cards');
         const personaProfile = document.getElementById('persona-profile');
         const chatMessages = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        const sendButton = document.getElementById('send-button');
-        const reportContent = document.getElementById('report-content');
-        
-        // 버튼 요소
-        const retakeButton = document.getElementById('retake-button');
-        const startCoachingButton = document.getElementById('start-coaching-button');
+        const micButton = document.getElementById('mic-button');
+        const micStatus = document.getElementById('mic-status');
         const endCoachingButton = document.getElementById('end-coaching-button');
+        const reportContent = document.getElementById('report-content');
+        const backToResultsFromPersona = document.getElementById('back-to-results-from-persona');
         const backToPersonasButton = document.getElementById('back-to-personas-button');
         const downloadReportButton = document.getElementById('download-report-button');
-
-        // 상태 변수
-        let radarChartInstance;
+        
+        let radarChartInstance, coachingRadarChartInstance;
         let conversationHistory = [];
         let currentPersona = null;
+        let lastAssessmentResults = null;
+        let isRecognizing = false;
+        let recognition;
+
+        const API_KEY = 'AIzaSyDVHespeipQzXWydT9WbrcVVcGb_O-dUH4';
+        const CHAT_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
         
-        // AI 관련
-        const API_KEY = '여기에 API 입력하기';
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-
         // --- 3. 함수 정의 ---
+        
+        // 음성 인식/합성 설정
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.lang = 'ko-KR';
+            recognition.interimResults = true;
+        }
 
-        // 화면 전환 함수
         function showScreen(screenId) {
-            [assessmentSection, resultsSection, coachingSection, personaSelection, chatInterface, coachingReport].forEach(el => el.classList.add('hidden'));
+            [entrySection, assessmentSection, resultsSection, coachingSection].forEach(el => el.classList.add('hidden'));
+            [personaSelection, chatInterface, coachingReport].forEach(el => el.classList.add('hidden'));
+            
             if (screenId) {
-                const screenElement = document.getElementById(screenId);
-                screenElement.classList.remove('hidden');
+                document.getElementById(screenId).classList.remove('hidden');
                 if (['persona-selection', 'chat-interface', 'coaching-report'].includes(screenId)) {
                     coachingSection.classList.remove('hidden');
                 }
             }
         }
 
-        // 진단 관련 함수
         function populateQuestions() {
             questionsContainer.innerHTML = '';
             let currentCategory = '';
@@ -261,13 +300,9 @@
                 qDiv.className = 'p-5 bg-gray-50 border border-gray-200 rounded-lg';
                 qDiv.innerHTML = `<p class="text-md font-medium text-gray-800 mb-4">${index + 1}. ${q.text}</p>`;
                 const radioGroup = document.createElement('div');
-                radioGroup.className = 'flex justify-between items-center space-x-2';
+                radioGroup.className = 'flex justify-between items-center space-x-2 flex-wrap';
                 for (let i = 1; i <= 5; i++) {
-                    radioGroup.innerHTML += `
-                        <div class="text-center">
-                            <input type="radio" name="question-${index}" id="q${index}-option${i}" value="${i}" data-category="${q.category}" class="w-5 h-5 cursor-pointer text-blue-600">
-                            <label for="q${index}-option${i}" class="block text-sm font-medium text-gray-700 mt-1 cursor-pointer">${i}</label>
-                        </div>`;
+                    radioGroup.innerHTML += `<div class="text-center p-1"><input type="radio" name="question-${index}" id="q${index}-option${i}" value="${i}" data-category="${q.category}" class="w-5 h-5 cursor-pointer text-blue-600 focus:ring-blue-500"><label for="q${index}-option${i}" class="block text-sm font-medium text-gray-700 mt-1 cursor-pointer">${i}</label></div>`;
                 }
                 qDiv.appendChild(radioGroup);
                 questionsContainer.appendChild(qDiv);
@@ -282,26 +317,12 @@
         }
 
         function displayResults(results, overallScore) {
+            lastAssessmentResults = { results, overallScore };
             const interpretation = getScoreInterpretation(overallScore);
-            overallScoreCardContainer.innerHTML = `
-                <div class="p-6 rounded-xl shadow-md bg-gray-100 border border-gray-200">
-                    <div class="flex justify-between items-start">
-                        <div><h3 class="text-xl font-bold text-gray-800">종합 평균</h3><p class="text-sm text-gray-600 mt-1">전체 리더십 역량의 평균 점수입니다.</p></div>
-                        <span class="text-3xl font-bold text-gray-800">${overallScore}</span>
-                    </div>
-                    <div class="mt-4">
-                        <div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-gray-500 h-2.5 rounded-full" style="width: ${overallScore * 20}%"></div></div>
-                        <div class="text-right mt-1 text-sm font-medium text-gray-800">${interpretation.level}</div>
-                    </div>
-                </div>`;
-            
+            overallScoreCardContainer.innerHTML = `<div class="p-6 rounded-xl shadow-md bg-gray-100 border border-gray-200"><div class="flex justify-between items-start"><div><h3 class="text-xl font-bold text-gray-800">종합 평균</h3><p class="text-sm text-gray-600 mt-1">전체 리더십 역량의 평균 점수입니다.</p></div><span class="text-3xl font-bold text-gray-800">${overallScore}</span></div><div class="mt-4"><div class="w-full bg-gray-200 rounded-full h-2.5"><div class="bg-gray-500 h-2.5 rounded-full" style="width: ${overallScore * 20}%"></div></div><div class="text-right mt-1 text-sm font-medium text-gray-800">${interpretation.level}</div></div></div>`;
             const sortedResults = Object.values(results).sort((a, b) => b.score - a.score);
-            strengthsWeaknessesContainer.innerHTML = `
-                <div class="flex items-start"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-lg">↑</div><div class="ml-3"><p class="font-bold text-gray-800">주요 강점: ${sortedResults[0].title}</p><p class="text-sm text-gray-600">${sortedResults[0].score}점</p></div></div>
-                <div class="flex items-start"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-lg">↓</div><div class="ml-3"><p class="font-bold text-gray-800">주요 개선점: ${sortedResults[3].title}</p><p class="text-sm text-gray-600">${sortedResults[3].score}점</p></div></div>`;
-
+            strengthsWeaknessesContainer.innerHTML = `<div class="flex items-start"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-lg">↑</div><div class="ml-3"><p class="font-bold text-gray-800">주요 강점: ${sortedResults[0].title}</p><p class="text-sm text-gray-600">${sortedResults[0].score}점</p></div></div><div class="flex items-start"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-lg">↓</div><div class="ml-3"><p class="font-bold text-gray-800">주요 개선점: ${sortedResults[3].title}</p><p class="text-sm text-gray-600">${sortedResults[3].score}점</p></div></div>`;
             overallAnalysisContainer.innerHTML = `<p>당신의 변혁적 리더십 종합 점수는 <strong>${overallScore}점</strong>으로, <strong>'${interpretation.level}'</strong>에 해당합니다.</p><p>${interpretation.comment}</p>`;
-            
             detailedFeedbackContainer.innerHTML = '';
             Object.keys(results).forEach(key => {
                 const r = results[key];
@@ -312,7 +333,6 @@
                 el.innerHTML = `<h4 class="font-bold text-lg text-${r.color}-800">${r.title} (${r.score}점)</h4><p class="text-gray-700 mt-1">${feedbackText[key][level]}</p>`;
                 detailedFeedbackContainer.appendChild(el);
             });
-
             drawRadarChart(results);
             showScreen('results-section');
             window.scrollTo(0, 0);
@@ -323,7 +343,12 @@
             radarChartInstance = new Chart(radarChartCtx, { type: 'radar', data: { labels: Object.values(results).map(r => r.title), datasets: [{ label: '리더십 점수', data: Object.values(results).map(r => r.score), backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 2 }] }, options: { scales: { r: { suggestedMin: 0, suggestedMax: 5, pointLabels: { font: { size: 14 } }, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } } });
         }
         
-        // AI 코칭 관련 함수
+        function drawCoachingRadarChart(scores) {
+            if (coachingRadarChartInstance) coachingRadarChartInstance.destroy();
+            const labels = ['신뢰 구축', '적극적 경청', '강력한 질문', '인식 창출', '실행 계획'];
+            coachingRadarChartInstance = new Chart(coachingRadarChartCtx, { type: 'radar', data: { labels: labels, datasets: [{ label: '코칭 역량 점수', data: scores, backgroundColor: 'rgba(139, 92, 246, 0.2)', borderColor: 'rgba(139, 92, 246, 1)', borderWidth: 2 }] }, options: { scales: { r: { suggestedMin: 0, suggestedMax: 5, pointLabels: { font: { size: 14 } }, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } } });
+        }
+
         function populatePersonas() {
             personaCardsContainer.innerHTML = '';
             for (const id in personas) {
@@ -337,47 +362,124 @@
         }
         
         function startChat(personaId) {
+            if (!SpeechRecognition) {
+                alert('죄송합니다, 이 브라우저는 음성 인식을 지원하지 않습니다.');
+                return;
+            }
             currentPersona = personas[personaId];
             conversationHistory = [];
             personaProfile.innerHTML = `<span class="text-3xl">${currentPersona.emoji}</span><div><h3 class="font-bold text-lg">${currentPersona.name} (${currentPersona.title})</h3><p class="text-sm text-gray-600">${currentPersona.description}</p></div>`;
             chatMessages.innerHTML = '';
-            chatInput.value = '';
             showScreen('chat-interface');
         }
 
-        async function callGeminiAPI(systemPrompt, history) {
-            sendButton.disabled = true;
-            const payload = { contents: history, systemInstruction: { parts: [{ text: systemPrompt }] } };
-            const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            sendButton.disabled = false;
-            if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
+        async function callApi(url, payload) {
+            micButton.disabled = true;
+            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            micButton.disabled = false;
+            if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+            return await response.json();
         }
 
         function addMessage(text, sender) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `p-3 rounded-lg max-w-lg ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`;
-            messageDiv.textContent = text;
+            messageDiv.innerHTML = text.replace(/\n/g, '<br>'); // Allow newlines
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
         }
 
-        function addTypingIndicator() {
-            const indicator = document.createElement('div');
-            indicator.id = 'typing-indicator';
-            indicator.className = 'p-3 rounded-lg max-w-lg chat-bubble-ai';
-            indicator.innerHTML = '<div class="flex items-center gap-2"><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div><div class="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div></div>';
-            chatMessages.appendChild(indicator);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
         }
 
-        function removeTypingIndicator() {
-            const indicator = document.getElementById('typing-indicator');
-            if (indicator) indicator.remove();
+        function pcmToWav(pcmData, sampleRate) {
+            const header = new ArrayBuffer(44);
+            const d = new DataView(header);
+            const pcm16 = new Int16Array(pcmData);
+
+            d.setUint8(0, 'R'.charCodeAt(0));
+            d.setUint8(1, 'I'.charCodeAt(0));
+            d.setUint8(2, 'F'.charCodeAt(0));
+            d.setUint8(3, 'F'.charCodeAt(0));
+            d.setUint32(4, 36 + pcm16.byteLength, true);
+            d.setUint8(8, 'W'.charCodeAt(0));
+            d.setUint8(9, 'A'.charCodeAt(0));
+            d.setUint8(10, 'V'.charCodeAt(0));
+            d.setUint8(11, 'E'.charCodeAt(0));
+            d.setUint8(12, 'f'.charCodeAt(0));
+            d.setUint8(13, 'm'.charCodeAt(0));
+            d.setUint8(14, 't'.charCodeAt(0));
+            d.setUint8(15, ' '.charCodeAt(0));
+            d.setUint32(16, 16, true); // PCM header size
+            d.setUint16(20, 1, true); // PCM format
+            d.setUint16(22, 1, true); // Mono
+            d.setUint32(24, sampleRate, true);
+            d.setUint32(28, sampleRate * 2, true); // sampleRate * bytesPerSample * channels
+            d.setUint16(32, 2, true); // bytesPerSample * channels
+            d.setUint16(34, 16, true); // bitsPerSample
+            d.setUint8(36, 'd'.charCodeAt(0));
+            d.setUint8(37, 'a'.charCodeAt(0));
+            d.setUint8(38, 't'.charCodeAt(0));
+            d.setUint8(39, 'a'.charCodeAt(0));
+            d.setUint32(40, pcm16.byteLength, true);
+
+            return new Blob([header, pcm16], { type: 'audio/wav' });
+        }
+
+        async function handleUserInput(userInput) {
+            addMessage(userInput, 'user');
+            conversationHistory.push({ role: 'user', parts: [{ text: userInput }] });
+            micStatus.textContent = 'AI가 생각 중...';
+            try {
+                const systemPrompt = `당신은 사용자의 부하 직원 역할을 수행하는 AI입니다. 다음 페르소나 설명을 기반으로 대답하세요:\n${currentPersona.details}\n사용자는 당신의 리더(코치)입니다. 대화는 한국어로 진행하고, 간결하게 답변하세요.`;
+                const chatPayload = { contents: conversationHistory, systemInstruction: { parts: [{ text: systemPrompt }] } };
+                const chatData = await callApi(CHAT_API_URL, chatPayload);
+                const aiResponseText = chatData.candidates[0].content.parts[0].text;
+                
+                addMessage(aiResponseText, 'ai');
+                conversationHistory.push({ role: 'model', parts: [{ text: aiResponseText }] });
+                micStatus.textContent = 'AI가 말하는 중...';
+
+                const ttsPayload = {
+                    contents: [{ parts: [{ text: aiResponseText }] }],
+                    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: currentPersona.voice } } } },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const ttsData = await callApi(TTS_API_URL, ttsPayload);
+                const audioData = ttsData.candidates[0].content.parts[0].inlineData.data;
+                const mimeType = ttsData.candidates[0].content.parts[0].inlineData.mimeType;
+                const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                
+                const pcmData = base64ToArrayBuffer(audioData);
+                const wavBlob = pcmToWav(pcmData, sampleRate);
+                const audioUrl = URL.createObjectURL(wavBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+
+                audio.onended = () => {
+                    micStatus.textContent = '탭하여 말하기';
+                    micButton.disabled = false;
+                };
+
+            } catch (error) {
+                addMessage('죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다.', 'ai');
+                micStatus.textContent = '오류 발생. 다시 시도하세요.';
+                console.error('API Call Error:', error);
+            }
         }
         
         // --- 4. 이벤트 리스너 연결 ---
+        
+        document.getElementById('start-assessment-button').addEventListener('click', () => showScreen('assessment-section'));
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -402,57 +504,98 @@
             displayResults(results, (totalSum / totalCount).toFixed(2));
         });
 
-        retakeButton.addEventListener('click', () => {
-            showScreen('assessment-section');
-            form.reset();
-        });
+        document.getElementById('retake-button').addEventListener('click', () => { showScreen('assessment-section'); form.reset(); });
+        document.getElementById('start-coaching-button').addEventListener('click', () => showScreen('persona-selection'));
 
-        startCoachingButton.addEventListener('click', () => {
-            showScreen('persona-selection');
-        });
+        // 음성 인식 이벤트 핸들러
+        if (recognition) {
+            micButton.addEventListener('click', () => {
+                if (isRecognizing) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
 
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const userInput = chatInput.value.trim();
-            if (!userInput) return;
-            addMessage(userInput, 'user');
-            conversationHistory.push({ role: 'user', parts: [{ text: userInput }] });
-            chatInput.value = '';
-            addTypingIndicator();
-            try {
-                const systemPrompt = `당신은 사용자의 부하 직원 역할을 수행하는 AI입니다. 다음 페르소나 설명을 기반으로 대답하세요:\n${currentPersona.details}\n사용자는 당신의 리더(코치)입니다. 대화는 한국어로 진행하고, 간결하게 답변하세요.`;
-                const aiResponse = await callGeminiAPI(systemPrompt, conversationHistory);
-                removeTypingIndicator();
-                addMessage(aiResponse, 'ai');
-                conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
-            } catch (error) {
-                removeTypingIndicator();
-                addMessage('죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다.', 'ai');
-                console.error('API Call Error:', error);
-            }
-        });
+            recognition.onstart = () => {
+                isRecognizing = true;
+                micButton.classList.add('recording', 'bg-red-500', 'hover:bg-red-600');
+                micStatus.textContent = '듣는 중... 다시 탭하여 중지';
+            };
+
+            recognition.onend = () => {
+                isRecognizing = false;
+                micButton.classList.remove('recording', 'bg-red-500', 'hover:bg-red-600');
+                micStatus.textContent = '탭하여 말하기';
+            };
+            
+            let finalTranscript = '';
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                // 실시간 표시 (선택 사항)
+                // micStatus.textContent = finalTranscript + interimTranscript;
+
+                // isFinal일 때 최종 결과 처리
+                if (finalTranscript.trim()) {
+                    handleUserInput(finalTranscript);
+                    finalTranscript = ''; // Reset for next input
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                micStatus.textContent = `오류: ${event.error}`;
+            };
+        }
 
         endCoachingButton.addEventListener('click', async () => {
+            if (isRecognizing) recognition.stop();
             if (conversationHistory.length < 2) {
                 alert('코칭 대화를 조금 더 진행한 후 분석해주세요.');
                 return;
             }
             showScreen('coaching-report');
-            reportContent.innerHTML = '<p class="text-center">AI가 코칭 내용을 분석 중입니다. 잠시만 기다려주세요...</p>';
+            addTypingIndicator(reportContent);
             const transcript = conversationHistory.map(msg => `${msg.role === 'user' ? '리더' : currentPersona.name}: ${msg.parts[0].text}`).join('\n');
-            const analysisPrompt = `당신은 최고의 리더십 코칭 전문가입니다. 아래 제공되는 코칭 대화 스크립트를 분석하여 리포트를 작성해주세요. 분석은 다음 5가지 핵심 코칭 역량을 기준으로 진행합니다: 1. 신뢰 구축 (Rapport & Trust): 안전하고 지지적인 환경을 조성했는가? 2. 적극적 경청 (Active Listening): 팀원의 말을 경청하고 그 의미를 파악했는가? 3. 강력한 질문 (Powerful Questioning): 스스로 생각하고 통찰을 얻도록 하는 개방형 질문을 사용했는가? 4. 인식 창출 (Creating Awareness): 팀원이 새로운 관점을 갖도록 도왔는가? 5. 실행 계획 (Designing Actions): 구체적인 행동 계획을 세우도록 지원했는가? 리포트는 다음 형식에 맞춰 Markdown으로 작성해주세요: ### 코칭 대화 요약\n(1~2문장 요약)\n### 5대 역량 기반 분석\n- **신뢰 구축:** (분석)\n- **적극적 경청:** (분석)\n- **강력한 질문:** (분석)\n- **인식 창출:** (분석)\n- **실행 계획:** (분석)\n### 총평 및 제언\n#### 잘한 점\n- (구체적 인용하며 칭찬)\n#### 개선점\n- (구체적 인용하며 제안)\n### 개선된 대화 스크립트 예시\n(특정 부분을 더 효과적인 대화로 재작성)\n---\n[코칭 대화 스크립트]\n${transcript}`;
+            const analysisPrompt = `당신은 최고의 리더십 코칭 전문가입니다. 아래 제공되는 코칭 대화 스크립트를 분석하여 리포트를 작성해주세요. **출력 규칙:** 1. 가장 먼저, 5대 코칭 역량에 대해 1~5점 척도로 평가하여 다음 JSON 형식으로 점수를 매깁니다. 이 JSON 객체는 반드시 응답의 첫 줄에 와야 합니다. \`\`\`json\n{"scores": {"trust": 0, "listening": 0, "questioning": 0, "awareness": 0, "actions": 0}}\n\`\`\`\n2. JSON 객체 다음 줄부터, 기존 리포트 형식에 맞춰 Markdown으로 상세 분석을 작성합니다. **5대 코칭 역량:** - trust (신뢰 구축): 안전하고 지지적인 환경을 조성했는가? - listening (적극적 경청): 팀원의 말을 경청하고 그 의미를 파악했는가? - questioning (강력한 질문): 스스로 생각하고 통찰을 얻도록 하는 개방형 질문을 사용했는가? - awareness (인식 창출): 팀원이 새로운 관점을 갖도록 도왔는가? - actions (실행 계획): 구체적인 행동 계획을 세우도록 지원했는가? **Markdown 리포트 형식:** ### 코칭 대화 요약\n(1~2문장 요약)\n### 5대 역량 기반 분석\n- **신뢰 구축:** (분석)\n- **적극적 경청:** (분석)\n- **강력한 질문:** (분석)\n- **인식 창출:** (분석)\n- **실행 계획:** (분석)\n### 총평 및 제언\n#### 잘한 점\n- (구체적 인용하며 칭찬)\n#### 개선점\n- (구체적 인용하며 제안)\n### 개선된 대화 스크립트 예시\n(특정 부분을 더 효과적인 대화로 재작성)\n---\n[코칭 대화 스크립트]\n${transcript}`;
+
             try {
-                const analysisResult = await callGeminiAPI(analysisPrompt, [{ role: 'user', parts: [{ text: '분석해주세요.' }] }]);
-                reportContent.innerHTML = marked.parse(analysisResult);
+                const analysisResult = await callApi(CHAT_API_URL, { contents: [{ role: 'user', parts: [{ text: analysisPrompt }] }] });
+                const fullText = analysisResult.candidates[0].content.parts[0].text;
+                removeTypingIndicator(reportContent);
+
+                const jsonMatch = fullText.match(/```json\n({.*?})\n```/s);
+                let scoresData = [1, 1, 1, 1, 1];
+                let markdownContent = fullText;
+
+                if (jsonMatch && jsonMatch[1]) {
+                    try {
+                        const parsedJson = JSON.parse(jsonMatch[1]);
+                        const s = parsedJson.scores;
+                        scoresData = [s.trust, s.listening, s.questioning, s.awareness, s.actions];
+                        markdownContent = fullText.replace(jsonMatch[0], '').trim();
+                    } catch (e) { console.error("Failed to parse scores JSON:", e); }
+                }
+                
+                drawCoachingRadarChart(scoresData);
+                reportContent.innerHTML = marked.parse(markdownContent);
+
             } catch (error) {
+                removeTypingIndicator(reportContent);
                 reportContent.innerHTML = '<p class="text-red-500">리포트 생성 중 오류가 발생했습니다.</p>';
                 console.error('Analysis Error:', error);
             }
         });
 
-        backToPersonasButton.addEventListener('click', () => {
-            showScreen('persona-selection');
-        });
+        backToPersonasButton.addEventListener('click', () => showScreen('persona-selection'));
+        backToResultsFromPersona.addEventListener('click', () => showScreen('results-section'));
 
         downloadReportButton.addEventListener('click', () => {
             const reportHtml = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>AI 코칭 분석 리포트 - ${currentPersona.name}</title><style>body{font-family:sans-serif;line-height:1.6;margin:2rem;}h1,h2,h3{color:#333;}div{border:1px solid #eee;padding:1rem;border-radius:8px;background:#f9f9f9;}</style></head><body><h1>AI 코칭 분석 리포트</h1><h2>대상: ${currentPersona.name} (${currentPersona.title})</h2><div>${reportContent.innerHTML}</div></body></html>`;
