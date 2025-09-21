@@ -126,7 +126,37 @@
                 </div>
             </div>
 
-            <!-- 2. 코칭 대화 화면 -->
+            <!-- 2. 대화 방식 선택 화면 -->
+            <div id="mode-selection" class="hidden">
+                 <header class="text-center mb-8">
+                    <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">대화 방식 선택</h1>
+                    <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
+                        <span id="selected-persona-name" class="font-bold"></span>님과 어떤 방식으로 코칭을 진행하시겠습니까?
+                    </p>
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button data-mode="text" class="mode-select-button p-6 bg-gray-50 rounded-xl border-2 border-transparent hover:border-indigo-500 hover:shadow-lg transition text-center">
+                        <i class="fa-solid fa-keyboard text-4xl text-indigo-500 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800">텍스트형</h3>
+                        <p class="text-gray-600 mt-1">키보드로만 대화합니다.</p>
+                    </button>
+                     <button data-mode="voice" class="mode-select-button p-6 bg-gray-50 rounded-xl border-2 border-transparent hover:border-indigo-500 hover:shadow-lg transition text-center">
+                        <i class="fa-solid fa-microphone-lines text-4xl text-indigo-500 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800">음성형</h3>
+                        <p class="text-gray-600 mt-1">마이크로만 대화합니다.</p>
+                    </button>
+                     <button data-mode="mixed" class="mode-select-button p-6 bg-gray-50 rounded-xl border-2 border-transparent hover:border-indigo-500 hover:shadow-lg transition text-center">
+                        <i class="fa-solid fa-hands-asl-interpreting text-4xl text-indigo-500 mb-3"></i>
+                        <h3 class="text-xl font-bold text-gray-800">혼합형</h3>
+                        <p class="text-gray-600 mt-1">텍스트와 음성을 모두 사용합니다.</p>
+                    </button>
+                </div>
+                <div class="mt-8 text-center">
+                    <button id="back-to-personas-from-mode" class="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 transition">팀원 다시 선택하기</button>
+                </div>
+            </div>
+
+            <!-- 3. 코칭 대화 화면 -->
             <div id="chat-interface" class="hidden">
                 <div id="persona-profile" class="p-4 bg-gray-50 rounded-lg mb-4 flex items-center gap-4"></div>
                 <div id="chat-messages" class="h-96 overflow-y-auto p-4 border rounded-lg mb-4 flex flex-col gap-4"></div>
@@ -145,7 +175,7 @@
                 </div>
             </div>
 
-            <!-- 3. 코칭 분석 결과 화면 -->
+            <!-- 4. 코칭 분석 결과 화면 -->
             <div id="coaching-report" class="hidden">
                  <header class="text-center mb-8">
                     <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">코칭 분석 리포트</h1>
@@ -237,6 +267,7 @@
         const resultsSection = document.getElementById('results-section');
         const coachingSection = document.getElementById('coaching-section');
         const personaSelection = document.getElementById('persona-selection');
+        const modeSelection = document.getElementById('mode-selection');
         const chatInterface = document.getElementById('chat-interface');
         const coachingReport = document.getElementById('coaching-report');
         const questionsContainer = document.getElementById('questions-container');
@@ -249,6 +280,7 @@
         const radarChartCtx = document.getElementById('radarChart').getContext('2d');
         const coachingRadarChartCtx = document.getElementById('coachingRadarChart').getContext('2d');
         const personaCardsContainer = document.getElementById('persona-cards');
+        const selectedPersonaName = document.getElementById('selected-persona-name');
         const personaProfile = document.getElementById('persona-profile');
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
@@ -259,18 +291,20 @@
         const endCoachingButton = document.getElementById('end-coaching-button');
         const reportContent = document.getElementById('report-content');
         const backToResultsFromPersona = document.getElementById('back-to-results-from-persona');
+        const backToPersonasFromMode = document.getElementById('back-to-personas-from-mode');
         const backToPersonasButton = document.getElementById('back-to-personas-button');
         const downloadReportButton = document.getElementById('download-report-button');
         
         let radarChartInstance, coachingRadarChartInstance;
         let conversationHistory = [];
         let currentPersona = null;
+        let currentCoachingMode = 'mixed';
         let lastAssessmentResults = null;
         let isRecognizing = false;
         let recognition;
         let currentAudio = null;
 
-        const API_KEY = 'AIzaSyDVHespeipQzXWydT9WbrcVVcGb_O-dUH4';
+        const API_KEY = 'AIzaSyBNgIwBkAEjCrESCQUMDNKXBzHe9Wr4DOc';
         const CHAT_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
         const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
         
@@ -279,18 +313,18 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = false; // Stop after a pause
+            recognition.continuous = false;
             recognition.lang = 'ko-KR';
             recognition.interimResults = true;
         }
 
         function showScreen(screenId) {
             [entrySection, assessmentSection, resultsSection, coachingSection].forEach(el => el.classList.add('hidden'));
-            [personaSelection, chatInterface, coachingReport].forEach(el => el.classList.add('hidden'));
+            [personaSelection, modeSelection, chatInterface, coachingReport].forEach(el => el.classList.add('hidden'));
             
             if (screenId) {
                 document.getElementById(screenId).classList.remove('hidden');
-                if (['persona-selection', 'chat-interface', 'coaching-report'].includes(screenId)) {
+                if (['persona-selection', 'mode-selection', 'chat-interface', 'coaching-report'].includes(screenId)) {
                     coachingSection.classList.remove('hidden');
                 }
             }
@@ -367,17 +401,35 @@
                 const card = document.createElement('div');
                 card.className = 'p-6 bg-gray-50 rounded-xl border-2 border-transparent hover:border-indigo-500 hover:shadow-lg transition cursor-pointer';
                 card.innerHTML = `<div class="flex items-center mb-3"><span class="text-4xl mr-4">${p.emoji}</span><div><h3 class="text-xl font-bold text-gray-800">${p.name}</h3><p class="font-semibold text-indigo-600">${p.title}</p></div></div><p class="text-gray-600">${p.description}</p>`;
-                card.addEventListener('click', () => startChat(id));
+                card.addEventListener('click', () => selectPersona(id));
                 personaCardsContainer.appendChild(card);
             }
         }
-        
-        async function startChat(personaId) {
-            if (!SpeechRecognition) {
-                alert('죄송합니다, 이 브라우저는 음성 인식을 지원하지 않습니다.');
+
+        function selectPersona(personaId) {
+            currentPersona = personas[personaId];
+            selectedPersonaName.textContent = currentPersona.name;
+            showScreen('mode-selection');
+        }
+
+        function initializeChatInterface(mode) {
+            currentCoachingMode = mode;
+            if (!SpeechRecognition && (mode === 'voice' || mode === 'mixed')) {
+                alert('죄송합니다. 이 브라우저는 음성 인식을 지원하지 않아 음성/혼합형 모드를 사용할 수 없습니다.');
                 return;
             }
-            currentPersona = personas[personaId];
+            
+            micButton.classList.toggle('hidden', mode === 'text');
+            chatInput.classList.toggle('hidden', mode === 'voice');
+            sendButton.classList.toggle('hidden', mode === 'voice');
+
+            if(mode === 'text') micStatus.textContent = '텍스트로 대화합니다.';
+            if(mode === 'voice') micStatus.textContent = '음성으로만 대화합니다. 마이크를 탭하세요.';
+            if(mode === 'mixed') micStatus.textContent = '음성으로 대화하려면 마이크를 탭하세요.';
+        }
+        
+        async function startChat(mode) {
+            initializeChatInterface(mode);
             conversationHistory = [];
             personaProfile.innerHTML = `<span class="text-3xl">${currentPersona.emoji}</span><div><h3 class="font-bold text-lg">${currentPersona.name} (${currentPersona.title})</h3><p class="text-sm text-gray-600">${currentPersona.description}</p></div>`;
             chatMessages.innerHTML = '';
@@ -386,16 +438,18 @@
             await initiateAiGreeting();
         }
 
-        async function callApi(url, payload) {
+        async function callApi(url, payload, isChat = true) {
             const allButtons = [micButton, sendButton, chatInput, endCoachingButton];
             allButtons.forEach(btn => btn.disabled = true);
             let response;
             try {
+                if (isChat) micStatus.textContent = 'AI가 생각 중...';
                 response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
                  return await response.json();
             } finally {
                  allButtons.forEach(btn => btn.disabled = false);
+                 if (isChat) micStatus.textContent = '음성으로 대화하려면 마이크를 탭하세요.';
             }
         }
 
@@ -432,16 +486,18 @@
         }
 
         async function playAudio(text, voiceName) {
-            micStatus.textContent = 'AI가 말하는 중...';
+            if (currentCoachingMode === 'text') return;
             try {
+                 micStatus.textContent = '오디오 생성 중...';
                  const ttsPayload = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } }, model: "gemini-2.5-flash-preview-tts" };
-                 const ttsData = await callApi(TTS_API_URL, ttsPayload);
+                 const ttsData = await callApi(TTS_API_URL, ttsPayload, false);
                  const audioData = ttsData.candidates[0].content.parts[0].inlineData.data;
                  const mimeType = ttsData.candidates[0].content.parts[0].inlineData.mimeType;
                  const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
                  const pcmData = base64ToArrayBuffer(audioData);
                  const wavBlob = pcmToWav(pcmData, sampleRate);
                  currentAudio = new Audio(URL.createObjectURL(wavBlob));
+                 micStatus.textContent = 'AI가 말하는 중...';
                  await currentAudio.play();
                  return new Promise(resolve => { currentAudio.onended = resolve; });
             } finally {
@@ -453,26 +509,27 @@
         async function initiateAiGreeting() {
             await new Promise(resolve => setTimeout(resolve, 500));
             const opener = currentPersona.opener;
-            addMessage(opener, 'ai');
             conversationHistory.push({ role: 'model', parts: [{ text: opener }] });
+            addMessage(opener, 'ai');
             await playAudio(opener, currentPersona.voice);
         }
 
         async function handleUserInput(userInput) {
-            addMessage(userInput, 'user');
             conversationHistory.push({ role: 'user', parts: [{ text: userInput }] });
-            micStatus.textContent = 'AI가 생각 중...';
+            addMessage(userInput, 'user');
+            
             try {
                 const systemPrompt = `당신은 사용자의 부하 직원 역할을 수행하는 AI입니다. 다음 페르소나 설명을 기반으로 대답하세요:\n${currentPersona.details}\n사용자는 당신의 리더(코치)입니다. 대화는 한국어로 진행하고, 간결하게 답변하세요.`;
                 const chatPayload = { contents: conversationHistory, systemInstruction: { parts: [{ text: systemPrompt }] } };
-                const chatData = await callApi(CHAT_API_URL, chatPayload);
+                const chatData = await callApi(CHAT_API_URL, chatPayload, true);
                 const aiResponseText = chatData.candidates[0].content.parts[0].text;
-                addMessage(aiResponseText, 'ai');
+                
                 conversationHistory.push({ role: 'model', parts: [{ text: aiResponseText }] });
+                addMessage(aiResponseText, 'ai');
                 await playAudio(aiResponseText, currentPersona.voice);
+
             } catch (error) {
                 addMessage('죄송합니다. AI 응답을 가져오는 중 오류가 발생했습니다.', 'ai');
-                micStatus.textContent = '오류 발생. 다시 시도하세요.';
                 console.error('API Call Error:', error);
             }
         }
@@ -500,6 +557,13 @@
         document.getElementById('retake-button').addEventListener('click', () => { showScreen('assessment-section'); form.reset(); });
         document.getElementById('start-coaching-button').addEventListener('click', () => showScreen('persona-selection'));
 
+        document.querySelectorAll('.mode-select-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+                startChat(mode);
+            });
+        });
+
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const userInput = chatInput.value.trim();
@@ -517,8 +581,13 @@
             recognition.onend = () => { isRecognizing = false; micButton.classList.remove('recording', 'bg-red-500', 'hover:bg-red-600'); micStatus.textContent = '음성으로 대화하려면 마이크를 탭하세요.'; };
             recognition.onresult = (event) => {
                 const transcript = Array.from(event.results).map(result => result[0]).map(result => result.transcript).join('');
+                chatInput.value = transcript;
                 if (event.results[event.results.length - 1].isFinal) {
-                    if (transcript.trim()) handleUserInput(transcript.trim());
+                    if (transcript.trim()) {
+                        recognition.stop();
+                        handleUserInput(transcript.trim());
+                        chatInput.value = '';
+                    }
                 }
             };
             recognition.onerror = (event) => { console.error('Speech recognition error:', event.error); micStatus.textContent = `오류: ${event.error}`; };
@@ -543,7 +612,8 @@
                 drawCoachingRadarChart(scoresData); reportContent.innerHTML = marked.parse(markdownContent);
             } catch (error) { reportContent.innerHTML = '<p class="text-red-500">리포트 생성 중 오류가 발생했습니다.</p>'; console.error('Analysis Error:', error); }
         });
-
+        
+        backToPersonasFromMode.addEventListener('click', () => showScreen('persona-selection'));
         backToPersonasButton.addEventListener('click', () => showScreen('persona-selection'));
         backToResultsFromPersona.addEventListener('click', () => showScreen('results-section'));
 
